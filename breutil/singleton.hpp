@@ -7,9 +7,9 @@
 使用方式：
 class A : public Singleton<A> {}
 使用A::Instance()获得指针A的智能指针
-
-
 */
+
+namespace bre {
 
 
 template <typename T> class Singleton {
@@ -51,3 +51,5 @@ protected:
 private:
     inline static std::string s_className = "";
 };
+
+}  // namespace bre
