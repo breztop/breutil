@@ -1,13 +1,28 @@
 # ========== 仅头文件库 ==========
 function(link_breutil target)
-    if(NOT BREUTILS_DIR_PATH)
-        message(FATAL_ERROR "BRE_DIR_PATH未设置，请检查平台配置文件")
+    if(BREUTILS_DIR_PATH)
+        target_include_directories(${target} PRIVATE ${BREUTILS_DIR_PATH})
+        message(STATUS "Linked BREUTIL header files for target: ${target}")
+        return()
     endif()
 
-    # 设置预编译头文件（可选）, 目的是加快编译速度
-    # target_precompile_headers(${target} PRIVATE
-    #     ${BREUTILS_DIR_PATH}/your_needed_header.hpp
-    # )
+    if(NOT TARGET breutil::breutil)
+        include(FetchContent)
 
-    target_include_directories(${target} PRIVATE ${BREUTILS_DIR_PATH})
+        FetchContent_Declare(
+            breutil
+            GIT_REPOSITORY https://github.com/breztop/breutil.git
+            GIT_TAG        main
+        )
+
+        FetchContent_MakeAvailable(breutil)
+
+        add_library(breutil INTERFACE)
+        target_include_directories(breutil INTERFACE ${breutil_SOURCE_DIR}/include)
+        add_library(breutil::breutil ALIAS breutil)
+
+        message(STATUS "breutil 已下载并添加到项目中")
+    endif()
+
+    target_link_libraries(${target} PRIVATE breutil::breutil)
 endfunction()
