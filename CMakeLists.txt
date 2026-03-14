@@ -46,7 +46,7 @@ install(
 
 install(
 	TARGETS breutil
-	EXPORT breutilsTargets
+	EXPORT breutilTargets
 )
 
 install(
