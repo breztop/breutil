@@ -35,26 +35,27 @@ public:
     size_t GetActiveThreadCount() const;
 
     /**
-     * @brief 等待所有任务完成
+     * @brief 等待所有任务完成，
+     * 禁止其他线程提交新任务，准备结束
      */
     void WaitAll();
 
 private:
     std::vector<std::thread> _workers;
 
-    std::atomic<size_t> _activeThreads; // 活跃线程计数
-    std::atomic_bool _stop;
+    std::atomic<size_t> _activeThreads{0};  // 活跃线程计数
+    std::atomic_bool _stop{false};
 
     std::queue<std::function<void()>> _tasks;
+    size_t _unfinishedTasks{0};
     mutable std::mutex _queueMutex;
     std::condition_variable_any _condVar;
+    std::condition_variable_any _finishedCondVar;
 };
 
 // implementation
 
-inline size_t ThreadPool::GetThreadCount() const {
-    return _workers.size();
-}
+inline size_t ThreadPool::GetThreadCount() const { return _workers.size(); }
 
 inline size_t ThreadPool::GetQueueSize() const {
     std::unique_lock<std::mutex> lock(_queueMutex);
@@ -67,8 +68,8 @@ inline size_t ThreadPool::GetActiveThreadCount() const {
 
 inline void ThreadPool::WaitAll() {
     std::unique_lock<std::mutex> lock(_queueMutex);
-    _condVar.wait(lock, [this] {
-        return _tasks.empty() && _activeThreads.load(std::memory_order_relaxed) == 0;
+    _finishedCondVar.wait(lock, [this] {
+        return _unfinishedTasks == 0;
     });
 }
 
@@ -86,14 +87,13 @@ inline ThreadPool::~ThreadPool() {
 }
 
 inline ThreadPool::ThreadPool(size_t threadCount) {
-    _stop = false;
     if (threadCount == 0) {
         threadCount = 2;
     }
 
     for (size_t i = 0; i < threadCount; ++i) {
         _workers.emplace_back([this]() {
-            while (!_stop) {
+            while (true) {
                 std::function<void()> task;
                 {
                     std::unique_lock lock(_queueMutex);
@@ -101,16 +101,22 @@ inline ThreadPool::ThreadPool(size_t threadCount) {
                         return _stop || !_tasks.empty();
                     });
                     if (_stop && _tasks.empty()) return;
-                    if (!_tasks.empty()) {
-                        task = std::move(_tasks.front());
-                        _tasks.pop();
-                    } else {
-                        continue;
-                    }
+
+                    task = std::move(_tasks.front());
+                    _tasks.pop();
                 }
+
                 _activeThreads.fetch_add(1, std::memory_order_relaxed);
                 task();
                 _activeThreads.fetch_sub(1, std::memory_order_relaxed);
+
+                {
+                    std::lock_guard<std::mutex> lock(_queueMutex);
+                    --_unfinishedTasks;
+                    if (_unfinishedTasks == 0) {
+                        _finishedCondVar.notify_all();
+                    }
+                }
             }
         });
     }
@@ -118,7 +124,8 @@ inline ThreadPool::ThreadPool(size_t threadCount) {
 
 
 template <typename F, typename... Args>
-inline auto ThreadPool::Enqueue(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>> {
+inline auto ThreadPool::Enqueue(F&& f, Args&&... args)
+    -> std::future<std::invoke_result_t<F, Args...>> {
     using return_type = std::invoke_result_t<F, Args...>;
     auto taskPtr = std::make_shared<std::packaged_task<return_type()>>(
         std::bind(std::forward<F>(f), std::forward<Args>(args)...));
@@ -130,11 +137,11 @@ inline auto ThreadPool::Enqueue(F&& f, Args&&... args) -> std::future<std::invok
         _tasks.emplace([taskPtr]() {
             (*taskPtr)();
         });
+        ++_unfinishedTasks;
     }
     _condVar.notify_one();
     return taskPtr->get_future();
 }
-
 
 
 }  // namespace bre
