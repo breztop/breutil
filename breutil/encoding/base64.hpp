@@ -30,7 +30,7 @@ namespace bre {
 class Base64 {
 public:
     /**
-     * @brief Checks if a character is a valid Base64 character.
+     * @brief Checks if a character is a valid Base64 character. “=” is not included
      *
      * @param ch The character to check.
      * @return true if the character is valid, false otherwise.
