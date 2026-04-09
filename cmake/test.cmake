@@ -1,8 +1,8 @@
 # Helper function to add a Boost.Test target
-function(add_boost_test TARGET_NAME SOURCE_FILE)
+function(add_boost_test TARGET_NAME )
+    set(SOURCE_FILE ${ARGN})
     message(STATUS "Adding Boost test target: ${TARGET_NAME}")
     add_executable(${TARGET_NAME} ${SOURCE_FILE})
-
     link_boost(${TARGET_NAME} unit_test_framework)
 
     # Add the test to CTest
@@ -19,14 +19,4 @@ function(add_boost_test TARGET_NAME SOURCE_FILE)
         CXX_STANDARD_REQUIRED ON
     )
 
-endfunction()
-
-function(copy_test_json_data)
-    # 拷贝Json测试数据到构建目录
-    add_custom_target(copy_test_data ALL
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/breutils/json/test
-        ${CMAKE_BINARY_DIR}/test
-    )
-    message(STATUS "Copying test data to ${CMAKE_BINARY_DIR}/test")
 endfunction()

@@ -15,7 +15,14 @@ endif()
 
 if(BREUTIL_BUILD_TESTS)
     message(STATUS "Building tests for breutil")
-    include(cmake/compiler.cmake)
+
+	# 启用测试功能
+	enable_testing()
+    include(CTest)
+
+	include(cmake/compiler.cmake)
+
+	include(cmake/util.cmake)                     # 引入工具函数逻辑
 
     # include(cmake/thirdlib.cmake)               # 引入第三方库管理逻辑
     include(cmake/generate_build_info.cmake)      # 引入生成构建信息逻辑

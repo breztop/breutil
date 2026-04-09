@@ -2,14 +2,21 @@ set(CMAKE_CXX_STANDARD 23)
 
 include_directories(../)
 
-# 启用测试功能
-enable_testing()
+
 
 add_definitions(
     -DBRE_TEST
 )
 
-add_boost_test(test_buffer tests/test_buffer.cpp)
+file(GLOB TEST_SOURCES
+    tests/*.cpp
+)
+
+MESSAGE(STATUS "Test sources: ${TEST_SOURCES}")
+
+add_boost_test(test_breutil
+    ${TEST_SOURCES}
+)
 
 if(PLATFORM_LINUX)
     add_executable(benchmark
@@ -42,3 +49,6 @@ target_link_libraries(base_test PRIVATE
     "-framework SystemConfiguration"
 )
 endif()
+
+
+copy_directory(${CMAKE_CURRENT_SOURCE_DIR}/data ${CMAKE_CURRENT_BINARY_DIR})

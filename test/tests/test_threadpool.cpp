@@ -1,6 +1,7 @@
-#define BOOST_TEST_MODULE ThreadPoolTest
+#include <boost/test/unit_test.hpp>
+
+//
 #include <atomic>
-#include <boost/test/included/unit_test.hpp>
 #include <chrono>
 #include <thread>
 

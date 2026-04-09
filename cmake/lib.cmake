@@ -32,6 +32,6 @@ include(${LINK_FUNCTIONS_PATH}/link_spdlog.cmake)
 include(${LINK_FUNCTIONS_PATH}/link_benchmark.cmake)
 include(${LINK_FUNCTIONS_PATH}/link_zlib.cmake)
 include(${LINK_FUNCTIONS_PATH}/link_librtp.cmake)
-include(${LINK_FUNCTIONS_PATH}/link_breutils.cmake)
+include(${LINK_FUNCTIONS_PATH}/link_breutil.cmake)
 include(${LINK_FUNCTIONS_PATH}/link_pcap.cmake)
 
