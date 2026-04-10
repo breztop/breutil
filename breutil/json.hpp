@@ -67,7 +67,3 @@
 
 
 #include "json/json_tool.hpp"
-
-#ifdef BRE_TEST
-#include "json/test_json.hpp"
-#endif

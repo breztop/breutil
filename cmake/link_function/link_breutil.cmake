@@ -1,7 +1,7 @@
 # ========== 仅头文件库 ==========
 function(link_breutil target)
-    if(BREUTILS_DIR_PATH)
-        target_include_directories(${target} PRIVATE ${BREUTILS_DIR_PATH})
+    if(BREUTIL_DIR_PATH)
+        target_include_directories(${target} PRIVATE ${BREUTIL_DIR_PATH})
         message(STATUS "Linked BREUTIL header files for target: ${target}")
         return()
     endif()

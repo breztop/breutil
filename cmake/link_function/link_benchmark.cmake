@@ -1,9 +1,9 @@
 function(link_benchmark target)
-    find_package(benchmark)
+    find_package(benchmark QUIET)
     if(NOT benchmark_FOUND)
         message(WARNING "benchmark 未找到！请检查路径或安装情况")
+        return()
     endif()
 
-    target_include_directories(${target} PRIVATE benchmark::benchmark)
-    target_link_libraries(${target} PRIVATE ${benchmark_LIBRARIES} benchmark::benchmark)
+    target_link_libraries(${target} PRIVATE benchmark::benchmark)
 endfunction()
