@@ -20,7 +20,7 @@ endfunction()
 
 function(link_boost target components)
     # 查找 Boost，指定需要链接的组件
-    set(CMAKE_PREFIX_PATH ${BOOST_DIR_PATH})
+    # set(CMAKE_PREFIX_PATH ${BOOST_DIR_PATH})
     find_package(Boost REQUIRED COMPONENTS ${components})
     
     if(NOT Boost_FOUND)

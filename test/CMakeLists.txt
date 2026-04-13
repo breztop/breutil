@@ -2,7 +2,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 include_directories(../)
 
-
+set(TEST_NAME test_breutil)
 
 add_definitions(
     -DBRE_TEST
@@ -14,7 +14,7 @@ file(GLOB TEST_SOURCES
 
 MESSAGE(STATUS "Test sources: ${TEST_SOURCES}")
 
-add_boost_test(test_breutil
+add_boost_test(${TEST_NAME}
     ${TEST_SOURCES}
 )
 
@@ -35,7 +35,7 @@ endif()
 
 if(APPLE)
 add_compile_definitions(_LIBCPP_ENABLE_EXPERIMENTAL)
-target_link_libraries(base_test PRIVATE         
+target_link_libraries(${TEST_NAME} PRIVATE         
     "-framework AppKit"
     "-framework CoreVideo"
     "-framework IOKit"
