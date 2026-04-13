@@ -11,7 +11,7 @@ using namespace bre;
 BOOST_AUTO_TEST_SUITE(IniTestSuite)
 
 BOOST_AUTO_TEST_CASE(test_ini_example) {
-    bre::Ini& config = bre::Ini::Instance("ini_example.ini");
+    bre::Ini& config = bre::Ini::Instance("./ini_example.ini");
 
     std::string host = config.GetStr("Database", "Host", "");
     int port = config.GetInt("Database", "Port", 0);
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(test_ini_example) {
 }
 
 BOOST_AUTO_TEST_CASE(test_type_conversion) {
-    std::ofstream testFile("test_types.ini");
+    std::ofstream testFile("./test_types.ini");
     testFile << "[Numbers]\n";
     testFile << "IntValue=42\n";
     testFile << "DoubleValue=3.14159\n";
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(test_type_conversion) {
 }
 
 BOOST_AUTO_TEST_CASE(test_comments_and_special_chars) {
-    std::ofstream testFile("test_special.ini");
+    std::ofstream testFile("./test_special.ini");
     testFile << "; This is a comment with semicolon\n";
     testFile << "# This is a comment with hash\n";
     testFile << "[Section1]\n";
@@ -179,13 +179,13 @@ BOOST_AUTO_TEST_CASE(test_modify_and_save) {
     bool saved = config.Save();
     BOOST_CHECK_EQUAL(saved, true);
 
-    bre::Ini& config2 = bre::Ini::Instance("test_modify.ini");
+    bre::Ini& config2 = bre::Ini::Instance("./test_modify.ini");
     BOOST_CHECK_EQUAL(config2.GetStr("NewSection", "StringValue"), "TestString");
     BOOST_CHECK_EQUAL(config2.GetInt("NewSection", "IntValue"), 123);
 }
 
 BOOST_AUTO_TEST_CASE(test_query_functions) {
-    std::ofstream testFile("test_query.ini");
+    std::ofstream testFile("./test_query.ini");
     testFile << "[Section1]\n";
     testFile << "Key1=Value1\n";
     testFile << "Key2=Value2\n";
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(test_query_functions) {
     testFile << "KeyA=ValueA\n";
     testFile.close();
 
-    bre::Ini& config = bre::Ini::Instance("test_query.ini");
+    bre::Ini& config = bre::Ini::Instance("./test_query.ini");
 
     BOOST_CHECK_EQUAL(config.HasSection("Section1"), true);
     BOOST_CHECK_EQUAL(config.HasSection("Section2"), true);

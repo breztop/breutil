@@ -145,7 +145,7 @@ elseif(APPLE)
     set(ARCH_SIMD_FLAGS ${ARCH_SIMD_FLAGS} -mmmx -msse -msse2)
   elseif(LOWERCASE_CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
     # Apple Silicon：使用 NEON 或 OpenMP SIMD
-    check_c_compiler_flag("-fopenmp-simd" C_COMPILER_SUPPORTS_OPENMP_SIMD)
+    # check_c_compiler_flag("-fopenmp-simd" C_COMPILER_SUPPORTS_OPENMP_SIMD)
     check_cxx_compiler_flag("-fopenmp-simd" CXX_COMPILER_SUPPORTS_OPENMP_SIMD)
     set(ARCH_SIMD_FLAGS
       ${ARCH_SIMD_FLAGS}
