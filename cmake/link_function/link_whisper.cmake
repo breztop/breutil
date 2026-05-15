@@ -1,0 +1,22 @@
+
+function(link_whisper_cpp target)
+    if(NOT TARGET whisper)
+        find_package(whisper)
+
+        if (NOT whisper_FOUND)
+            set(CMAKE_PREFIX_PATH ${LIBWHISPER_PATH})
+            if(NOT LIBWHISPER_PATH) 
+                message(WARNING "LIBWHISPER_PATH未设置，请检查平台配置文件")
+                return()
+            endif()
+            find_package(whisper)
+        endif()
+    endif()
+    if(NOT TARGET whisper)
+        message(WARNING "未找到 whisper 库，无法链接")
+        return()
+    endif()
+
+    target_link_libraries(${target} PRIVATE whisper)
+    message(STATUS "${target} link with whisper")
+endfunction(link_whisper_cpp)

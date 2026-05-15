@@ -1,7 +1,7 @@
 # ========== 仅头文件库 ==========
 function(link_breutil target)
     if(BREUTIL_DIR_PATH)
-        target_include_directories(${target} PRIVATE ${BREUTIL_DIR_PATH})
+        target_include_directories(${target} PUBLIC ${BREUTIL_DIR_PATH})
         message(STATUS "Linked BREUTIL header files for target: ${target}")
         return()
     endif()
@@ -24,5 +24,5 @@ function(link_breutil target)
         message(STATUS "breutil 已下载并添加到项目中")
     endif()
 
-    target_link_libraries(${target} PRIVATE breutil::breutil)
+    target_link_libraries(${target} PUBLIC breutil::breutil)
 endfunction()

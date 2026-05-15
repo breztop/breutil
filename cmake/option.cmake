@@ -26,6 +26,11 @@ if(BUILD_TESTS)
     add_subdirectory(${CMAKE_SOURCE_DIR}/test)
 endif()
 
+if(BUILD_EXAMPLE)
+    message("BUILD_EXAMPLE ON")
+    add_subdirectory(${CMAKE_SOURCE_DIR}/example)
+endif()
+
 if(BUILD_BENCHMARK)
     message("BUILD_BENCHMARK ON")
     add_subdirectory(${CMAKE_SOURCE_DIR}/benchmark)
