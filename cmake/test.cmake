@@ -14,5 +14,4 @@ function(add_boost_test TARGET_NAME )
         CXX_STANDARD_REQUIRED ON
     )
 
-    target_link_libraries(${TARGET_NAME} PRIVATE stdc++exp)
 endfunction()
