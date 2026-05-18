@@ -1,4 +1,7 @@
 #pragma once
+#ifndef NDEBUG
+#include <string>
+#endif
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -32,10 +35,10 @@ public:
     void PrintAddress() { std::cout << _instance.get() << std::endl; }
 
     virtual ~Singleton() {
+#ifndef NDEBUG
         if (s_className == "") {
             s_className = typeid(*this).name();
         }
-#ifndef NDEBUG
         std::cout << s_className << " as singleton destruct" << std::endl;
 #endif
     }
@@ -49,7 +52,9 @@ protected:
 
 
 private:
+#ifndef NDEBUG
     inline static std::string s_className = "";
+#endif
 };
 
 }  // namespace bre

@@ -8,11 +8,6 @@ function(add_boost_test TARGET_NAME )
     # Add the test to CTest
     add_test(NAME ${TARGET_NAME} COMMAND ${TARGET_NAME})
 
-    # Set the working directory for the test
-    set_tests_properties(${TARGET_NAME} PROPERTIES
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    )
-
     # Enable C++ standard if needed
     set_target_properties(${TARGET_NAME} PROPERTIES
         CXX_STANDARD 23

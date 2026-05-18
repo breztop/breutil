@@ -1,5 +1,6 @@
 #include <boost/test/unit_test.hpp>
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -8,10 +9,16 @@
 
 using namespace bre;
 
+#ifndef TEST_DATA_DIR
+#define TEST_DATA_DIR ""
+#endif
+
 BOOST_AUTO_TEST_SUITE(IniTestSuite)
 
 BOOST_AUTO_TEST_CASE(test_ini_example) {
-    bre::Ini& config = bre::Ini::Instance("./ini_example.ini");
+    const std::filesystem::path dataPath = std::filesystem::path(TEST_DATA_DIR) / "ini_example.ini";
+
+    bre::Ini& config = bre::Ini::Instance(dataPath.string());
 
     std::string host = config.GetStr("Database", "Host", "");
     int port = config.GetInt("Database", "Port", 0);

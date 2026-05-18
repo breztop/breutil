@@ -18,6 +18,15 @@ add_boost_test(${TEST_NAME}
     ${TEST_SOURCES}
 )
 
+target_compile_definitions(${TEST_NAME} PRIVATE
+    TEST_DATA_DIR="${TEST_DATA_PATH}"
+)
+
+# set binary directory
+set_target_properties(${TEST_NAME} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 if(PLATFORM_LINUX)
     add_executable(benchmark
         tests/benchmark.cpp
@@ -50,5 +59,5 @@ target_link_libraries(${TEST_NAME} PRIVATE
 )
 endif()
 
-
+# same path within the binary directory
 copy_directory(${CMAKE_CURRENT_SOURCE_DIR}/data ${CMAKE_CURRENT_BINARY_DIR})

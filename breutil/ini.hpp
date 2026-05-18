@@ -26,6 +26,11 @@ int intValue = config.GetInt("int_key", 42);
 - 支持多种数据类型获取（string, int, double, bool）
 - 支持配置修改和保存
 - 线程安全
+
+# todo:
+- 增加对数组类型的支持（例如 key=value1,value2,value3）
+- 增加对include其他INI文件的支持
+- 增加对环境变量的支持（例如 key=${ENV_VAR}）
 */
 
 namespace bre {

@@ -265,23 +265,38 @@ inline std::optional<double> ParseDouble(const std::string& s) {
 
     if (*start == '+') {
         ++start;
+
         if (start == end) {
             return std::nullopt;
         }
+
         if (*start == '-' || *start == '+') {
             return std::nullopt;
         }
     }
 
+#if defined(__APPLE__)
+    std::string temp(start, end);
+    char* parseEnd = nullptr;
+    errno = 0;
+
+    double val = std::strtod(temp.c_str(), &parseEnd);
+    if (errno != 0 || parseEnd != temp.c_str() + temp.size()) {
+        return std::nullopt;
+    }
+
+    return val;
+#else
     double val;
     auto [ptr, ec] = std::from_chars(start, end, val);
+
     if (ec != std::errc{} || ptr != end) {
         return std::nullopt;
     }
 
     return val;
+#endif
 }
-
 
 inline std::string FormatDouble(double f, char fmt = 'g', int prec = -1) {
     std::ostringstream oss;

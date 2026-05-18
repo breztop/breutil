@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(test_roundtrip) {
 BOOST_AUTO_TEST_CASE(test_random_data) {
     std::mt19937 rng(42);  // Fixed seed for reproducibility
     std::uniform_int_distribution<int> length_dist(0, 1000);
-    std::uniform_int_distribution<unsigned char> byte_dist(0, 255);
+    std::uniform_int_distribution<int> byte_dist(0, 255);
 
     for (int i = 0; i < 100; ++i) {  // Reduced for speed
         int length = length_dist(rng);
