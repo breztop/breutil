@@ -276,7 +276,7 @@ inline std::optional<double> ParseDouble(const std::string& s) {
     }
 
 #if defined(__APPLE__)
-    if (start == ' ') {
+    if (*start == ' ') {
         return std::nullopt;
     }
 
