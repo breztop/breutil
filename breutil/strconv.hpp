@@ -276,6 +276,10 @@ inline std::optional<double> ParseDouble(const std::string& s) {
     }
 
 #if defined(__APPLE__)
+    if (start == ' ') {
+        return std::nullopt;
+    }
+
     std::string temp(start, end);
     char* parseEnd = nullptr;
     errno = 0;
