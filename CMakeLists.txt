@@ -5,6 +5,10 @@ project(breutil VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# 存在 cmake/platform.cmake 文件才包含
+if (EXISTS "${CMAKE_SOURCE_DIR}/cmake/platform.cmake")
+    include(cmake/platform.cmake)
+endif()
 
 # 只有在编写本项目测试的时候才引用下面的 cmake/xxx, 外部项目不引用
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
