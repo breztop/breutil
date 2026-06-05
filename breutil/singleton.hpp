@@ -26,9 +26,10 @@ public:
             _instance = std::shared_ptr<T>(new T(), [](T* ptr) {
                 delete ptr;
             });
+#ifndef NDEBUG
             s_className = _instance->getClassName();
         });
-
+#endif
         return _instance;
     }
 
