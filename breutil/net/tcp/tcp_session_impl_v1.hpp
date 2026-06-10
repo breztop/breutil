@@ -20,7 +20,6 @@ using error_code = boost::system::error_code;
 #include <vector>
 
 #include "../../block_queue.hpp"
-#include "../../spdlog.hpp"
 #include "../net_header.hpp"
 
 namespace bre::impl::v1 {
@@ -53,7 +52,7 @@ public:
 
     ~TCPSession() {
         Stop();
-        LOG_TRACE("Session {} destructed", _session_id);
+        // LOG_TRACE("Session {} destructed", _session_id);
     }
 
     TCPSession(const TCPSession&) = delete;
@@ -85,7 +84,8 @@ public:
 
     void Start() {
         if (!_is_init_socket.load(std::memory_order_acquire)) {
-            LOG_WARN("Session {} socket not initialized, cannot start", _session_id);
+            std::cout << std::format("Session {} socket not initialized, cannot start",
+                                     _session_id);
             return;
         }
 
@@ -108,7 +108,7 @@ public:
     void Stop() {
         bool expected = false;
         if (!_is_closed.compare_exchange_strong(expected, true)) {
-            LOG_TRACE("Session {} already stopped", _session_id);
+            // LOG_TRACE("Session {} already stopped", _session_id);
             return;
         }
         _is_init_socket = false;
@@ -126,7 +126,8 @@ public:
 
     void Send(std::span<const uint8_t> data) {
         if (_is_closed) {
-            LOG_WARN("Session {} is closed, you need keep the session live longer", _session_id);
+            std::cout << std::format("Session {} is closed, you need keep the session live longer",
+                                     _session_id);
             return;
         }
 
@@ -291,9 +292,10 @@ private:
     }
 
     void handle_error(const std::string& error_msg) {
-        LOG_ERROR("Session {} error: {}", _session_id, error_msg);
         if (_error_callback) {
             _error_callback(_session_id, error_msg);
+        } else {
+            std::cout << std::format("Session {} error: {}", _session_id, error_msg);
         }
     }
 

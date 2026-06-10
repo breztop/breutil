@@ -15,7 +15,6 @@ using error_code = boost::system::error_code;
 #include <string>
 #include <vector>
 
-#include "../../spdlog.hpp"
 #include "../asio_io_context_pool.hpp"
 
 namespace bre {
@@ -44,7 +43,7 @@ public:
         if (!ec && endpoints.begin() != endpoints.end()) {
             _remote_endpoint = *endpoints.begin();
         } else {
-            LOG_ERROR("UDP resolve failed: {}", ec.message());
+            throw("UDP resolve failed: " + ec.message());
         }
     }
 
@@ -67,7 +66,7 @@ public:
         _socket.async_send_to(asio::buffer(*data), _remote_endpoint,
                               [data](error_code ec, std::size_t /*bytes_sent*/) {
                                   if (ec) {
-                                      LOG_ERROR("UDP send failed: {}", ec.message());
+                                      throw("UDP send failed: " + ec.message());
                                   }
                               });
     }

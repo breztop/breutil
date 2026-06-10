@@ -19,7 +19,6 @@ using error_code = boost::system::error_code;
 #include <string>
 #include <vector>
 
-#include "../../spdlog.hpp"
 #include "../asio_io_context_pool.hpp"
 #include "tcp_config.hpp"
 #include "tcp_session.hpp"
@@ -54,29 +53,23 @@ public:
         , _acceptor(_io_context, tcp::endpoint(tcp::v4(), config.port))
         , _is_running(false) {
         error_code ec;
-        _acceptor.set_option(tcp::acceptor::reuse_address(true), ec);
-        if (ec) {
-            LOG_ERROR("Failed to set reuse_address: {}", ec.message());
-        }
+        _acceptor.set_option(tcp::acceptor::reuse_address(true));
     }
 
-    ~TCPServer() {
-        Stop();
-        LOG_INFO("TCPServer on port {} stopped", _config.port);
-    }
+    ~TCPServer() { Stop(); }
 
     TCPServer(const TCPServer&) = delete;
     TCPServer& operator=(const TCPServer&) = delete;
 
     void Start() {
         if (_is_running) {
-            LOG_WARN("Server already running");
+            std::cout << "Server already running\n";
             return;
         }
 
         _is_running = true;
         start_accept();
-        LOG_INFO("TCPServer started on port {}", _config.port);
+        std::cout << std::format("TCPServer started on port {}\n", _config.port);
     }
 
     // 阻塞运行
@@ -124,7 +117,7 @@ public:
         if (session) {
             session->Send(data);
         } else {
-            LOG_WARN("Session {} not found", session_id);
+            std::cout << std::format("Session {} not found", session_id);
         }
     }
 
@@ -226,11 +219,11 @@ private:
                 _callbacks.on_connected(session);
             }
 
-            LOG_TRACE("Client connected: {} ({}), total sessions: {}", session_id, client_info,
-                      GetSessionCount());
+            // LOG_TRACE("Client connected: {} ({}), total sessions: {}", session_id, client_info,
+            //           GetSessionCount());
         } else {
             if (ec != asio::error::operation_aborted) {
-                LOG_ERROR("Accept failed: {}", ec.message());
+                std::cout << std::format("Accept failed: {}", ec.message());
             }
         }
 
@@ -258,7 +251,7 @@ private:
                 }
             }
 
-            LOG_TRACE("Client disconnected: {}, remaining sessions: {}", sid, GetSessionCount());
+            // LOG_TRACE("Client disconnected: {}, remaining sessions: {}", sid, GetSessionCount());
         });
 
         // 错误回调
@@ -266,7 +259,7 @@ private:
             if (_callbacks.on_error) {
                 _callbacks.on_error(sid, error);
             }
-            LOG_DEBUG("Session {} error: {}", sid, error);
+            std::cout << std::format("Session {} error: {}", sid, error);
         });
     }
 

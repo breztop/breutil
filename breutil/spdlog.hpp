@@ -11,6 +11,7 @@
     spdlog::default_logger()->log(spdlog::source_loc(__FILE__, __LINE__, nullptr), \
                                   static_cast<spdlog::level::level_enum>(LEVEL), __VA_ARGS__)
 
+#define LOG_TRACE(...) LOG(spdlog::level::trace, __VA_ARGS__)
 #define LOG_DEBUG(...) LOG(spdlog::level::debug, __VA_ARGS__)
 #define LOG_INFO(...) LOG(spdlog::level::info, __VA_ARGS__)
 #define LOG_WARN(...) LOG(spdlog::level::warn, __VA_ARGS__)
@@ -101,4 +102,4 @@ static void log(LogLevel level, const char* file, int line, std::format_string<A
 
 inline void set_log_level(bre::LogLevel level) { bre::LOG_LEVEL = level; }
 
-#endif // USE_SPDLOG
+#endif  // USE_SPDLOG

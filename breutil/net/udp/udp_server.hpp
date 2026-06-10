@@ -20,7 +20,6 @@ using error_code = boost::system::error_code;
 #include <vector>
 
 #include "../asio_io_context_pool.hpp"
-#include "breUtils/spdlog.hpp"
 
 namespace bre {
 
@@ -51,10 +50,7 @@ public:
         _callback_regexs.push_back({host_regex, port_regex, callback});
     }
 
-    void Start() {
-        do_receive();
-        LOG_INFO("UDPServer started on port {}", _socket.local_endpoint().port());
-    }
+    void Start() { do_receive(); }
 
     void Stop() {
         error_code ec;
@@ -79,7 +75,8 @@ public:
         _socket.async_send_to(asio::buffer(*data), endpoint,
                               [data](error_code ec, std::size_t /*bytes_sent*/) {
                                   if (ec) {
-                                      LOG_ERROR("UDPServer reply failed: {}", ec.message());
+                                      std::cout << std::format("UDPServer reply failed: {}",
+                                                               ec.message());
                                   }
                               });
     }
@@ -102,7 +99,7 @@ private:
 
                     do_receive();
                 } else if (ec != asio::error::operation_aborted) {
-                    LOG_ERROR("UDP receive error: {}", ec.message());
+                    std::cout << std::format("UDP receive error: {}", ec.message());
                     if (_socket.is_open()) {
                         do_receive();
                     }
