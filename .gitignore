@@ -1,3 +1,10 @@
+debian/*.debhelper
+debian/debhelper-build-stamp
+debian/files
+debian/*.substvars
+debian/*/
+
+!.gitkeep
 platform.cmake
 
 *zip

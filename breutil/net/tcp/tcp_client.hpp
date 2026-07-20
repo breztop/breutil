@@ -14,7 +14,6 @@ using error_code = boost::system::error_code;
 #include <memory>
 #include <string>
 
-#include "../../spdlog.hpp"
 #include "../asio_io_context_pool.hpp"
 #include "tcp_config.hpp"
 #include "tcp_session.hpp"
@@ -96,7 +95,7 @@ private:
         session->SetInitSocket(true);
         session->Start();
 
-        LOG_TRACE("Connected to {}:{}", _config.host, _config.port);
+        std::cout << std::format("Connected to {}:{}", _config.host, _config.port);
         if (callbacks.on_connected) {
             callbacks.on_connected(session);
         }
@@ -136,11 +135,11 @@ private:
                 session->SetInitSocket(true);
                 session->Start();
 
-                LOG_DEBUG("Connected to {}:{}", _config.host, _config.port);
+                std::cout << std::format("Connected to {}:{}", _config.host, _config.port);
                 if (callbacks.on_connected) {
                     callbacks.on_connected(session);
                 } else {
-                    LOG_WARN("No on_connected callback set");
+                    throw("No on_connected callback set");
                 }
             });
     }
@@ -162,9 +161,10 @@ private:
     }
 
     static void handle_connect_error(const EventCallbacks& callbacks, const std::string& msg) {
-        LOG_ERROR("{}", msg);
         if (callbacks.on_failed) {
             callbacks.on_failed(0, msg);
+        } else {
+            std::cout << "handle_connect_error: " << msg << "\n";
         }
     }
 

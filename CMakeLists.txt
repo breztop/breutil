@@ -12,9 +12,13 @@ endif()
 
 # 只有在编写本项目测试的时候才引用下面的 cmake/xxx, 外部项目不引用
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
-    set(BREUTIL_BUILD_TESTS ON CACHE BOOL "Build tests for breutil" FORCE)
+    set(BREUTIL_BUILD_TESTS ON CACHE BOOL "Build tests for breutil")
 else()
-    set(BREUTIL_BUILD_TESTS OFF CACHE BOOL "Build tests for breutil" FORCE)
+    set(BREUTIL_BUILD_TESTS OFF CACHE BOOL "Build tests for breutil")
+endif()
+
+if(BUILD_DEB)
+	set(BREUTIL_BUILD_TESTS OFF CACHE BOOL "Disable tests in deb build" FORCE)
 endif()
 
 if(BREUTIL_BUILD_TESTS)
@@ -53,6 +57,8 @@ target_include_directories(breutil
 install(
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/breutil
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+	PATTERN "*.h"
+    PATTERN "*.hpp"
 )
 
 install(

@@ -1,0 +1,12 @@
+Source: breutil
+Section: libdevel
+Priority: optional
+Build-Depends: debhelper-compat (= 13)
+Maintainer: Breeze <breezeinhappy@gmail.com>
+Standards-Version: 1.0.1
+
+Package: breutil-dev
+Architecture: all
+Depends: ${misc:Depends}
+Description: Header-only C++ utility library
+ A collection of reusable C++ utility components.
