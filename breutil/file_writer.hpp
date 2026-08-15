@@ -17,7 +17,8 @@ public:
 
     // 构造函数
     FileWriter(const std::string& Filename, bool is_write = false)
-        : m_is_write(is_write), filename(Filename) {
+        : m_is_write(is_write)
+        , filename(Filename) {
         if (!is_write) return;
         // 直接用成员变量打开文件
         outFile.open(filename, std::ios::binary);
@@ -27,12 +28,6 @@ public:
         }
     }
 
-    ~FileWriter() {
-        if (m_is_write && outFile.is_open()) {
-            outFile.flush();
-            outFile.close();
-        }
-    }
 
     // 写入数据到文件的方法
     bool WriteData(void* data, int size) {
@@ -54,6 +49,13 @@ public:
             return false;
         }
         return true;
+    }
+
+    ~FileWriter() {
+        if (m_is_write && outFile.is_open()) {
+            outFile.flush();
+            outFile.close();
+        }
     }
 
 private:
