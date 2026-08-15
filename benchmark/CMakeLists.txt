@@ -16,4 +16,5 @@ target_compile_options(
 
 link_benchmark(${PROJECT_NAME})
 
+add_subdirectory(benchmark_json)
 
