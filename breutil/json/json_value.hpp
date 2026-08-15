@@ -4,6 +4,8 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -20,9 +22,18 @@ class Generator;
 
 enum class Type { Null, Bool, Int, Double, String, Array, Object };
 
+struct TransparentStringHash {
+    using is_transparent = void;
+
+    size_t operator()(std::string_view value) const noexcept {
+        return std::hash<std::string_view>{}(value);
+    }
+};
+
 class Value {
 public:
-    using Object = std::unordered_map<std::string, Value>;
+    using Object =
+        std::unordered_map<std::string, Value, TransparentStringHash, std::equal_to<>>;
     using Array = std::vector<Value>;
 
     static std::string TypeStr(Type type) {
@@ -58,8 +69,11 @@ public:
     explicit Value(double d) : type_(Type::Double), value_(d) {}
     Value(const char* s) : type_(Type::String), value_(std::string(s)) {}
     Value(const std::string& s) : type_(Type::String), value_(s) {}
+    Value(std::string&& s) noexcept : type_(Type::String), value_(std::move(s)) {}
     Value(const Array& arr) : type_(Type::Array), value_(arr) {}
+    Value(Array&& arr) noexcept : type_(Type::Array), value_(std::move(arr)) {}
     Value(const Object& obj) : type_(Type::Object), value_(obj) {}
+    Value(Object&& obj) noexcept : type_(Type::Object), value_(std::move(obj)) {}
 
     Value& operator=(const Value& other) {
         if (this == &other) {
@@ -110,6 +124,11 @@ public:
         value_ = s;
     }
 
+    void SetString(std::string&& s) {
+        type_ = Type::String;
+        value_ = std::move(s);
+    }
+
     void SetArray() {
         type_ = Type::Array;
         value_ = Array{};
@@ -138,7 +157,7 @@ public:
         return std::get<double>(value_);
     }
 
-    std::string AsString() {
+    std::string& AsString() {
         checkType(Type::String);
         return std::get<std::string>(value_);
     }
@@ -148,7 +167,7 @@ public:
         return std::get<std::string>(value_);
     }
 
-    Array AsArray() {
+    Array& AsArray() {
         checkType(Type::Array);
         return std::get<Array>(value_);
     }
@@ -157,7 +176,7 @@ public:
         return std::get<Array>(value_);
     }
 
-    Object AsObject() {
+    Object& AsObject() {
         checkType(Type::Object);
         return std::get<Object>(value_);
     }
@@ -248,10 +267,18 @@ public:
 
     Value& operator[](const std::string& key) {
         if (type_ == Type::Null) {
-            return (*this = Object{{key, Value()}})[key];
+            SetObject();
         }
         checkType(Type::Object);
         return std::get<Object>(value_)[key];
+    }
+
+    Value& operator[](std::string&& key) {
+        if (type_ == Type::Null) {
+            SetObject();
+        }
+        checkType(Type::Object);
+        return std::get<Object>(value_)[std::move(key)];
     }
 
     const Value& operator[](size_t index) const {
@@ -274,9 +301,54 @@ public:
         return it->second;
     }
 
+    Value& At(size_t index) {
+        checkType(Type::Array);
+        return std::get<Array>(value_).at(index);
+    }
+
+    const Value& At(size_t index) const {
+        checkType(Type::Array);
+        return std::get<Array>(value_).at(index);
+    }
+
+    Value& At(std::string_view key) {
+        checkType(Type::Object);
+        auto& object = std::get<Object>(value_);
+        const auto it = object.find(key);
+        if (it == object.end()) {
+            throw std::out_of_range("Object key not found");
+        }
+        return it->second;
+    }
+
+    const Value& At(std::string_view key) const {
+        checkType(Type::Object);
+        const auto& object = std::get<Object>(value_);
+        const auto it = object.find(key);
+        if (it == object.end()) {
+            throw std::out_of_range("Object key not found");
+        }
+        return it->second;
+    }
+
     void Append(const Value& val) {
         checkType(Type::Array);
         std::get<Array>(value_).push_back(val);
+    }
+
+    void Append(Value&& val) {
+        checkType(Type::Array);
+        std::get<Array>(value_).push_back(std::move(val));
+    }
+
+    void Reserve(size_t capacity) {
+        if (type_ == Type::Array) {
+            std::get<Array>(value_).reserve(capacity);
+        } else if (type_ == Type::Object) {
+            std::get<Object>(value_).reserve(capacity);
+        } else {
+            checkType(Type::Array);
+        }
     }
 
     void Remove(size_t index) {

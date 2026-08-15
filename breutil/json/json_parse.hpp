@@ -2,8 +2,8 @@
 
 #include <cctype>
 #include <charconv>
-#include <iostream>
 #include <string>
+#include <string_view>
 
 #include "json_exception.hpp"
 #include "json_value.hpp"
@@ -26,6 +26,7 @@ public:
     static void parse(const std::string& str, Value& root, bool is_strict = false) {
         if (is_strict) {
             Parser parser(str);
+            root = parser.parseValue();
         } else {
             std::string cleanStr = removeComments(removeTailComma(str));
             Parser parser(std::move(cleanStr));
@@ -34,7 +35,7 @@ public:
     }
 
 private:
-    explicit Parser(std::string str) : input_(std::move(str)), position_(0) {}
+    explicit Parser(const std::string& str) : input_(str), position_(0) {}
 
     Value parseValue() {
         skipWhitespace();
@@ -76,10 +77,10 @@ private:
     }
 
     Value parseBool() {
-        if (input_.substr(position_, 4) == "true") {
+        if (input_.substr(position_, 4) == std::string_view("true")) {
             position_ += 4;
             return Value(true);
-        } else if (input_.substr(position_, 5) == "false") {
+        } else if (input_.substr(position_, 5) == std::string_view("false")) {
             position_ += 5;
             return Value(false);
         } else {
@@ -87,79 +88,6 @@ private:
         }
     }
 
-    // Value parseNumber() {
-    //     // 超过int， long long 的范围，直接转为 double
-    //     // 对于含有 e 的数字，直接转为 double
-    //     // -123456.789e-27
-    //     size_t start = position_;
-    //     if (input_[position_] == '-') ++position_;
-
-    //     bool isDouble = false;
-    //     while (position_ < input_.size() && std::isdigit(input_[position_])) {
-    //         ++position_;
-    //     }
-
-    //     if (position_ < input_.size() && input_[position_] == '.') {
-    //         isDouble = true;
-    //         ++position_;
-    //         while (position_ < input_.size() && std::isdigit(input_[position_])) {
-    //             ++position_;
-    //         }
-    //     }
-
-    //     if (position_ < input_.size() && (input_[position_] == 'e' || input_[position_] == 'E'))
-    //     {
-    //         isDouble = true;
-    //         ++position_;
-    //         if (position_ < input_.size() && (input_[position_] == '+' || input_[position_] ==
-    //         '-')) {
-    //             ++position_;
-    //         }
-    //         while (position_ < input_.size() && std::isdigit(input_[position_])) {
-    //             ++position_;
-    //         }
-    //     }
-
-    //     std::string numberStr = input_.substr(start, position_ - start);
-    //     if (isDouble) {
-    //         try {
-    //             double value = std::stod(numberStr);
-    //             return Value(value);
-    //         } catch (const std::invalid_argument& e) {
-    //             std::string msg = std::string("Invalid double value: ") + numberStr + " " +
-    //             e.what(); throwException(msg);
-    //         } catch (const std::out_of_range) {
-    //             constexpr double inf = std::numeric_limits<double>::infinity();
-    //             if (numberStr[0] == '-') {
-    //                 return Value(-inf);
-    //             } else {
-    //                 return Value(inf);
-    //             }
-    //         }
-    //     } else {
-    //         int value;
-    //         auto [ptr, ec] = std::from_chars(numberStr.data(), numberStr.data() +
-    //         numberStr.size(), value); if (ec == std::errc()) {
-    //             return Value(value);
-    //         }
-    //         // 转换为 int 失败，尝试转换为 double
-    //         std::cout << "parseNumber: " << numberStr << "\n";
-    //         try {
-    //             double doubleValue = std::stod(numberStr);
-    //             return Value(doubleValue);
-    //         } catch (const std::invalid_argument& e) {
-    //             std::string msg = std::string("Invalid number value: ") + numberStr + " " +
-    //             e.what(); throwException(msg);
-    //         } catch (const std::out_of_range) {
-    //             constexpr double inf = std::numeric_limits<double>::infinity();
-    //             if (numberStr[0] == '-') {
-    //                 return Value(-inf);
-    //             } else {
-    //                 return Value(inf);
-    //             }
-    //         }
-    //     }
-    // }
     Value parseNumber() {
         const char* start = input_.data() + position_;
         const char* p = start;
@@ -208,10 +136,9 @@ private:
             // Fall through to double if out of range
         }
 
-        // Use strtod for floating point parsing
-        char* endPtr;
-        double d = std::strtod(start, &endPtr);
-        if (endPtr == p && errno != ERANGE) {
+        double d;
+        const auto [doubleEnd, doubleError] = std::from_chars(start, p, d);
+        if (doubleError == std::errc{} && doubleEnd == p) {
             return Value(d);
         }
 
@@ -220,7 +147,9 @@ private:
         throwException("Invalid number: " + numStr);
     }
 
-    Value parseString() {
+    Value parseString() { return Value(parseStringContent()); }
+
+    std::string parseStringContent() {
         expect("\"");
         std::string result;
         result.reserve(64);
@@ -264,13 +193,19 @@ private:
                         throwException("Invalid escape character");
                 }
             } else {
-                result.push_back(input_[position_]);
+                const size_t runStart = position_;
+                do {
+                    ++position_;
+                } while (position_ < input_.size() && input_[position_] != '"' &&
+                         input_[position_] != '\\');
+                result.append(input_.data() + runStart, position_ - runStart);
+                continue;
             }
             ++position_;
         }
 
         expect("\"");
-        return Value(std::move(result));
+        return result;
     }
 
     void ParseUnicode(std::string& result) {
@@ -279,11 +214,15 @@ private:
             throwException("Invalid Unicode escape sequence");
         }
 
-        std::string hexStr = input_.substr(position_ + 1, 4);
+        const std::string_view hexStr = input_.substr(position_, 4);
         position_ += 4;
 
-        unsigned int codePoint;
-        std::from_chars(hexStr.data(), hexStr.data() + hexStr.size(), codePoint, 16);
+        unsigned int codePoint = 0;
+        const auto [codeEnd, codeError] =
+            std::from_chars(hexStr.data(), hexStr.data() + hexStr.size(), codePoint, 16);
+        if (codeError != std::errc{} || codeEnd != hexStr.data() + hexStr.size()) {
+            throwException("Invalid Unicode escape sequence");
+        }
 
         if (codePoint >= 0xD800 && codePoint <= 0xDBFF) {
             // Handle surrogate pairs
@@ -292,11 +231,14 @@ private:
                 throwException("Invalid Unicode surrogate pair");
             }
             position_ += 2;
-            std::string lowHexStr = input_.substr(position_, 4);
+            const std::string_view lowHexStr = input_.substr(position_, 4);
             position_ += 4;
-            unsigned int lowCodePoint;
-            std::from_chars(lowHexStr.data(), lowHexStr.data() + lowHexStr.size(), lowCodePoint,
-                            16);
+            unsigned int lowCodePoint = 0;
+            const auto [lowEnd, lowError] = std::from_chars(
+                lowHexStr.data(), lowHexStr.data() + lowHexStr.size(), lowCodePoint, 16);
+            if (lowError != std::errc{} || lowEnd != lowHexStr.data() + lowHexStr.size()) {
+                throwException("Invalid Unicode surrogate pair");
+            }
             if (lowCodePoint < 0xDC00 || lowCodePoint > 0xDFFF) {
                 throwException("Invalid Unicode surrogate pair");
             }
@@ -329,7 +271,7 @@ private:
         arrayValue.SetArray();
 
         skipWhitespace();
-        if (input_[position_] == ']') {
+        if (position_ < input_.size() && input_[position_] == ']') {
             ++position_;
             return arrayValue;
         }
@@ -337,6 +279,7 @@ private:
         while (true) {
             arrayValue.Append(parseValue());
             skipWhitespace();
+            if (position_ >= input_.size()) throwException("Unexpected end of array");
             if (input_[position_] == ',') {
                 ++position_;
                 skipWhitespace();
@@ -357,21 +300,27 @@ private:
         objectValue.SetObject();
 
         skipWhitespace();
-        if (input_[position_] == '}') {
+        if (position_ < input_.size() && input_[position_] == '}') {
             ++position_;
             return objectValue;
         }
 
         while (true) {
+            if (position_ >= input_.size()) {
+                throwException("Unexpected end of object");
+            }
             if (input_[position_] != '"') {
                 throwException("Expected string key");
             }
-            std::string key = parseString().AsString();
+            std::string key = parseStringContent();
             skipWhitespace();
             expect(":");
-            auto value = parseValue();
-            objectValue[key] = value;
+            Value value = parseValue();
+            objectValue[std::move(key)] = std::move(value);
             skipWhitespace();
+            if (position_ >= input_.size()) {
+                throwException("Unexpected end of object");
+            }
             if (input_[position_] == ',') {
                 ++position_;
                 skipWhitespace();
@@ -472,9 +421,9 @@ private:
         }
     }
 
-    void expect(const std::string& expected) {
+    void expect(std::string_view expected) {
         if (input_.substr(position_, expected.size()) != expected) {
-            throwException("Expected '" + expected + "'");
+            throwException("Expected '" + std::string(expected) + "'");
         }
         position_ += expected.size();
     }
@@ -487,14 +436,18 @@ private:
         size_t startIndex = position_ > msg_long ? position_ - msg_long : 0;
         size_t endIndex =
             position_ + msg_long < input_.size() ? position_ + msg_long : input_.size();
-        error_msg += std::to_string(position_) + ": \'" + input_[position_] + "\' near: \"" +
-                     input_.substr(startIndex, position_ - startIndex) + "\033[31m" +
-                     input_[position_] + "\033[0m"  // 红色
-                     + input_.substr(position_ + 1, endIndex - position_ - 1) + "\"";
+        const char current = position_ < input_.size() ? input_[position_] : '\0';
+        error_msg += std::to_string(position_) + ": \'" + current + "\' near: \"" +
+                     std::string(input_.substr(startIndex, position_ - startIndex)) + "\033[31m" +
+                     current + "\033[0m";  // 红色
+        if (position_ < input_.size()) {
+            error_msg += std::string(input_.substr(position_ + 1, endIndex - position_ - 1));
+        }
+        error_msg += "\"";
         throw JsonParseException(error_msg, JsonErrorType::UnknownError, func_location);
     }
 
-    const std::string input_;
+    std::string_view input_;
     size_t position_;
 };
 }  // namespace json

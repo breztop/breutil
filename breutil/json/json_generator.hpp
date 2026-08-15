@@ -1,13 +1,13 @@
 #pragma once
 
 #include <algorithm>
+#include <charconv>
 #include <string>
-#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "json_exception.hpp"
 #include "json_value.hpp"
-
 
 namespace bre {
 namespace json {
@@ -19,147 +19,173 @@ public:
     static std::string generate(const Value& val, bool pretty = true, int indentWidth = 2,
                                 bool sortKeys = false) {
         Generator generator(pretty ? indentWidth : 0);
-        return generator.generateValue(val, 0, sortKeys);
+        generator.output_.reserve(generator.initialCapacity(val));
+        generator.appendValue(val, 0, sortKeys);
+        return std::move(generator.output_);
     }
 
 private:
     explicit Generator(int indentWidth) : indentWidth_(indentWidth) {}
 
-    std::string indent(int level) const { return std::string(level * indentWidth_, ' '); }
+    size_t initialCapacity(const Value& val) const {
+        constexpr size_t minimumCapacity = 256;
+        if (val.type() == Type::Array) {
+            return std::max(minimumCapacity, val.AsArray().size() * 16);
+        }
+        if (val.type() == Type::Object) {
+            return std::max(minimumCapacity, val.AsObject().size() * 24);
+        }
+        return minimumCapacity;
+    }
 
-    std::string generateValue(const Value& val, int level, bool sortKeys = false) {
+    void appendIndent(int level) { output_.append(static_cast<size_t>(level * indentWidth_), ' '); }
+
+    void appendInt(int value) {
+        char buffer[32];
+        const auto [end, error] = std::to_chars(buffer, buffer + sizeof(buffer), value);
+        if (error == std::errc{}) {
+            output_.append(buffer, end);
+        } else {
+            output_ += std::to_string(value);
+        }
+    }
+
+    void appendValue(const Value& val, int level, bool sortKeys) {
         switch (val.type()) {
             case Type::Null:
-                return "null";
+                output_ += "null";
+                break;
             case Type::Bool:
-                return val.AsBool() ? "true" : "false";
+                output_ += val.AsBool() ? "true" : "false";
+                break;
             case Type::Int:
-                return std::to_string(val.AsInt());
+                appendInt(val.AsInt());
+                break;
             case Type::Double:
-                return std::to_string(val.AsDouble());
+                output_ += std::to_string(val.AsDouble());
+                break;
             case Type::String:
-                return "\"" + escapeString(val.AsString()) + "\"";
+                appendQuotedString(val.AsString());
+                break;
             case Type::Array:
-                return generateArray(val.AsArray(), level + 1, sortKeys);
+                appendArray(val.AsArray(), level + 1, sortKeys);
+                break;
             case Type::Object:
-                return generateObject(val.AsObject(), level + 1, sortKeys);
+                appendObject(val.AsObject(), level + 1, sortKeys);
+                break;
             default:
                 throw JsonParseException("Invalid Value type");
         }
     }
 
-    std::string generateArray(const Value::Array& array, int level, bool sortKeys) {
-        if (array.empty()) return "[]";
-
-        std::string result;
-        result.reserve(array.size() * 16);
-        result = "[";
-        if (indentWidth_ > 0) result += "\n";
-
-        for (size_t i = 0; i < array.size(); ++i) {
-            if (indentWidth_ > 0) result += indent(level);
-            result += generateValue(array[i], level, sortKeys);
-            if (i < array.size() - 1) {
-                result += ",";
-            }
-            if (indentWidth_ > 0) result += "\n";
+    void appendArray(const Value::Array& array, int level, bool sortKeys) {
+        output_ += '[';
+        if (array.empty()) {
+            output_ += ']';
+            return;
         }
 
-        if (indentWidth_ > 0) result += indent(level - 1);
-        result += "]";
-        return result;
+        if (indentWidth_ > 0) output_ += '\n';
+        for (size_t i = 0; i < array.size(); ++i) {
+            if (indentWidth_ > 0) appendIndent(level);
+            appendValue(array[i], level, sortKeys);
+            if (i + 1 < array.size()) output_ += ',';
+            if (indentWidth_ > 0) output_ += '\n';
+        }
+        if (indentWidth_ > 0) appendIndent(level - 1);
+        output_ += ']';
     }
 
-    std::string generateObject(const Value::Object& object, int level, bool sortKeys) {
-        if (object.empty()) return "{}";
+    void appendMember(const std::string& key, const Value& value, int level, bool sortKeys) {
+        if (indentWidth_ > 0) appendIndent(level);
+        appendQuotedString(key);
+        output_ += indentWidth_ > 0 ? ": " : ":";
+        appendValue(value, level, sortKeys);
+    }
 
-        std::string result;
-        result.reserve(object.size() * 32);
-        result = "{";
-        if (indentWidth_ > 0) result += "\n";
+    void appendObject(const Value::Object& object, int level, bool sortKeys) {
+        output_ += '{';
+        if (object.empty()) {
+            output_ += '}';
+            return;
+        }
 
+        if (indentWidth_ > 0) {
+            output_ += '\n';
+        }
         size_t count = 0;
 
         if (sortKeys) {
-            std::vector<std::string> keys;
-            for (const auto& [key, _] : object) {
-                keys.push_back(key);
+            using Entry = Value::Object::value_type;
+            std::vector<const Entry*> entries;
+            entries.reserve(object.size());
+            for (const auto& entry : object) {
+                entries.push_back(&entry);
             }
-            std::sort(keys.begin(), keys.end());
+            std::sort(entries.begin(), entries.end(), [](const Entry* lhs, const Entry* rhs) {
+                return lhs->first < rhs->first;
+            });
 
-            for (const auto& key : keys) {
-                const auto& value = object.at(key);
-                if (indentWidth_ > 0) {
-                    result += indent(level);
-                    result +=
-                        "\"" + escapeString(key) + "\": " + generateValue(value, level, sortKeys);
-                } else {
-                    result +=
-                        "\"" + escapeString(key) + "\":" + generateValue(value, level, sortKeys);
-                }
-
-                if (++count < object.size()) {
-                    result += ",";
-                }
-                if (indentWidth_ > 0) result += "\n";
+            for (const Entry* entry : entries) {
+                appendMember(entry->first, entry->second, level, sortKeys);
+                if (++count < object.size()) output_ += ',';
+                if (indentWidth_ > 0) output_ += '\n';
             }
         } else {
             for (const auto& [key, value] : object) {
-                if (indentWidth_ > 0) {
-                    result += indent(level);
-                    result +=
-                        "\"" + escapeString(key) + "\": " + generateValue(value, level, sortKeys);
-                } else {
-                    result +=
-                        "\"" + escapeString(key) + "\":" + generateValue(value, level, sortKeys);
-                }
-
-                if (++count < object.size()) {
-                    result += ",";
-                }
-                if (indentWidth_ > 0) result += "\n";
+                appendMember(key, value, level, sortKeys);
+                if (++count < object.size()) output_ += ',';
+                if (indentWidth_ > 0) output_ += '\n';
             }
         }
 
-        if (indentWidth_ > 0) result += indent(level - 1);
-        result += "}";
-        return result;
+        if (indentWidth_ > 0) appendIndent(level - 1);
+        output_ += '}';
     }
 
-    std::string escapeString(const std::string& s) {
-        std::string escaped;
-        for (char c : s) {
-            switch (c) {
+    void appendQuotedString(const std::string& value) {
+        output_ += '"';
+        size_t runStart = 0;
+        for (size_t i = 0; i < value.size(); ++i) {
+            const char* replacement = nullptr;
+            switch (value[i]) {
                 case '"':
-                    escaped += "\\\"";
+                    replacement = "\\\"";
                     break;
                 case '\\':
-                    escaped += "\\\\";
+                    replacement = "\\\\";
                     break;
                 case '\b':
-                    escaped += "\\b";
+                    replacement = "\\b";
                     break;
                 case '\f':
-                    escaped += "\\f";
+                    replacement = "\\f";
                     break;
                 case '\n':
-                    escaped += "\\n";
+                    replacement = "\\n";
                     break;
                 case '\r':
-                    escaped += "\\r";
+                    replacement = "\\r";
                     break;
                 case '\t':
-                    escaped += "\\t";
+                    replacement = "\\t";
                     break;
                 default:
-                    escaped += c;
                     break;
             }
+            if (replacement != nullptr) {
+                output_.append(value.data() + runStart, i - runStart);
+                output_ += replacement;
+                runStart = i + 1;
+            }
         }
-        return escaped;
+        output_.append(value.data() + runStart, value.size() - runStart);
+        output_ += '"';
     }
 
     int indentWidth_;
+    std::string output_;
 };
+
 }  // namespace json
 }  // namespace bre

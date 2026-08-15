@@ -37,8 +37,8 @@ inline bool Value::operator==(const Value& other) const {
         case Type::String:
             return this->AsString() == other.AsString();
         case Type::Array: {
-            auto thisArray = this->AsArray();
-            auto otherArray = other.AsArray();
+            const auto& thisArray = this->AsArray();
+            const auto& otherArray = other.AsArray();
             if (thisArray.size() != otherArray.size()) {
                 return false;
             }
@@ -50,8 +50,8 @@ inline bool Value::operator==(const Value& other) const {
             return true;
         }
         case Type::Object: {
-            auto thisObject = this->AsObject();
-            auto otherObject = other.AsObject();
+            const auto& thisObject = this->AsObject();
+            const auto& otherObject = other.AsObject();
             if (thisObject.size() != otherObject.size()) {
                 return false;
             }
