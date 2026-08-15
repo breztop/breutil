@@ -28,8 +28,8 @@ public:
             });
 #ifndef NDEBUG
             s_className = _instance->getClassName();
-        });
 #endif
+        });
         return _instance;
     }
 
