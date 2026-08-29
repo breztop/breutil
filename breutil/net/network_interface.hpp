@@ -12,9 +12,9 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+#include <iphlpapi.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <iphlpapi.h>
 #pragma comment(lib, "IPHLPAPI.lib")
 #pragma comment(lib, "ws2_32.lib")
 #else
@@ -52,7 +52,11 @@ public:
     NetworkInterface() = default;
     NetworkInterface(const Ip& ip, const Mac& mac, const std::string& if_name_,
                      AddressType addr_type_, InterfaceType if_type_)
-        : _ip(ip), _mac(mac), _if_name(if_name_), _addr_type(addr_type_), _if_type(if_type_) {}
+        : _ip(ip)
+        , _mac(mac)
+        , _if_name(if_name_)
+        , _addr_type(addr_type_)
+        , _if_type(if_type_) {}
 
     // 访问器
     const Ip& GetIp() const { return _ip; }
@@ -242,13 +246,13 @@ inline void NetworkInterface::CollectInterfaceInfo() {
 
         if (p->ifa_addr->sa_family == AF_INET) {
             char buf[INET_ADDRSTRLEN];
-            auto sa = (struct sockaddr_in*)p->ifa_addr;
+            auto sa = reinterpret_cast<struct sockaddr_in*>(p->ifa_addr);
             inet_ntop(AF_INET, &sa->sin_addr, buf, sizeof(buf));
             ip_str = buf;
             addr_type = AddressType::IPV4;
         } else if (p->ifa_addr->sa_family == AF_INET6) {
             char buf[INET6_ADDRSTRLEN];
-            auto sa = (struct sockaddr_in6*)p->ifa_addr;
+            auto sa = reinterpret_cast<struct sockaddr_in6*>(p->ifa_addr);
             inet_ntop(AF_INET6, &sa->sin6_addr, buf, sizeof(buf));
             ip_str = buf;
             addr_type = AddressType::IPV6;
@@ -269,7 +273,7 @@ inline void NetworkInterface::CollectInterfaceInfo() {
             if (ioctl(fd, SIOCGIFHWADDR, &ifr) == 0) {
                 std::array<uint8_t, 6> mac_bytes;
                 for (int i = 0; i < 6; ++i) {
-                    mac_bytes[i] = (uint8_t)ifr.ifr_hwaddr.sa_data[i];
+                    mac_bytes[i] = static_cast<uint8_t>(ifr.ifr_hwaddr.sa_data[i]);
                 }
                 mac_addr = Mac(mac_bytes);
             }
@@ -315,8 +319,7 @@ inline std::vector<NetworkInterface> NetworkInterface::Get(AddressType addr_type
     for (const auto& iface : _cached_interfaces) {
         bool addr_match =
             (addr_type_filter == AddressType::ANY || iface._addr_type == addr_type_filter);
-        bool if_match =
-            (if_type_filter == InterfaceType::ANY || iface._if_type == if_type_filter);
+        bool if_match = (if_type_filter == InterfaceType::ANY || iface._if_type == if_type_filter);
 
         if (addr_match && if_match) {
             result.push_back(iface);

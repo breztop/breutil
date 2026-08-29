@@ -138,47 +138,76 @@ inline bool Ip::operator==(const Ip& other) const {
 }
 
 // ==================== 静态方法实现：地址转换 ====================
+inline std::optional<uint16_t> parseIPv6Group(std::string_view group) {
+    if (group.empty() || group.size() > 4) {
+        return std::nullopt;
+    }
 
-inline vector<uint8_t> Ip::ToBytes(const string& ip_str) {
-    if (ip_str.empty()) return {};
+    uint16_t value = 0;
 
-    // 尝试解析 IPv4
-    if (ip_str.find(':') == string::npos) {
-        // IPv4 格式
-        vector<uint8_t> result(4);
-        std::istringstream iss(ip_str);
-        int count = 0;
-        int num;
-        char dot;
+    for (char c : group) {
+        value *= 16;
 
-        for (int i = 0; i < 4; ++i) {
-            if (!(iss >> num)) return {};
-            if (num < 0 || num > 255) return {};
-            result[i] = static_cast<uint8_t>(num);
-            count++;
+        if (c >= '0' && c <= '9') {
+            value += static_cast<uint16_t>(c - '0');
+        } else if (c >= 'a' && c <= 'f') {
+            value += static_cast<uint16_t>(c - 'a' + 10);
+        } else if (c >= 'A' && c <= 'F') {
+            value += static_cast<uint16_t>(c - 'A' + 10);
+        } else {
+            return std::nullopt;
+        }
+    }
 
-            if (i < 3) {
-                if (!(iss >> dot) || dot != '.') return {};
-            }
+    return value;
+}
+inline vector<uint8_t> toBytesV4(const string& ip_str) {
+    vector<uint8_t> result(4);
+
+    std::istringstream iss(ip_str);
+    int num;
+    char dot;
+
+    for (int i = 0; i < 4; ++i) {
+        if (!(iss >> num)) {
+            return {};
         }
 
-        // 确保没有多余的字符
-        if (iss >> dot) return {};
-        if (count == 4) return result;
+        if (num < 0 || num > 255) {
+            return {};
+        }
+
+        result[i] = static_cast<uint8_t>(num);
+
+        if (i < 3) {
+            if (!(iss >> dot) || dot != '.') {
+                return {};
+            }
+        }
+    }
+
+    // 确保没有多余字符
+    if (iss >> dot) {
         return {};
     }
 
-    // IPv6 格式
+    return result;
+}
+inline vector<uint8_t> toBytesV6(const string& ip_str) {
     vector<uint8_t> result(16, 0);
     std::string_view sv(ip_str);
 
-    // 查找 "::" 的位置
+    // "::" 压缩格式
     size_t double_colon_pos = sv.find("::");
-    bool has_double_colon = (double_colon_pos != std::string_view::npos);
 
-    if (has_double_colon) {
-        // 有 "::" 压缩形式
+    if (double_colon_pos != std::string_view::npos) {
+        // "::" 最多只能出现一次
+        if (sv.find("::", double_colon_pos + 2) != std::string_view::npos) {
+            return {};
+        }
+
         std::string_view left = sv.substr(0, double_colon_pos);
+
         std::string_view right = (double_colon_pos + 2 < sv.length())
                                      ? sv.substr(double_colon_pos + 2)
                                      : std::string_view{};
@@ -186,114 +215,135 @@ inline vector<uint8_t> Ip::ToBytes(const string& ip_str) {
         int left_count = 0;
         int right_count = 0;
 
-        // 解析左边部分
+        // 解析左侧
         if (!left.empty()) {
             size_t start = 0;
+
             while (start < left.length()) {
                 size_t end = left.find(':', start);
-                if (end == std::string_view::npos) end = left.length();
+
+                if (end == std::string_view::npos) {
+                    end = left.length();
+                }
 
                 std::string_view group = left.substr(start, end - start);
-                if (group.empty()) return {};
 
-                uint16_t value = 0;
-                for (char c : group) {
-                    if (c >= '0' && c <= '9') {
-                        value = value * 16 + (c - '0');
-                    } else if (c >= 'a' && c <= 'f') {
-                        value = value * 16 + (c - 'a' + 10);
-                    } else if (c >= 'A' && c <= 'F') {
-                        value = value * 16 + (c - 'A' + 10);
-                    } else {
-                        return {};
-                    }
-                    if (value > 0xFFFF) return {};
-                }
+                auto value = parseIPv6Group(group);
 
-                result[left_count * 2] = (value >> 8) & 0xFF;
-                result[left_count * 2 + 1] = value & 0xFF;
-                left_count++;
-
-                start = end + 1;
-            }
-        }
-
-        // 解析右边部分
-        if (!right.empty()) {
-            std::vector<uint16_t> right_groups;
-            size_t start = 0;
-            while (start < right.length()) {
-                size_t end = right.find(':', start);
-                if (end == std::string_view::npos) end = right.length();
-
-                std::string_view group = right.substr(start, end - start);
-                if (group.empty()) return {};
-
-                uint16_t value = 0;
-                for (char c : group) {
-                    if (c >= '0' && c <= '9') {
-                        value = value * 16 + (c - '0');
-                    } else if (c >= 'a' && c <= 'f') {
-                        value = value * 16 + (c - 'a' + 10);
-                    } else if (c >= 'A' && c <= 'F') {
-                        value = value * 16 + (c - 'A' + 10);
-                    } else {
-                        return {};
-                    }
-                    if (value > 0xFFFF) return {};
-                }
-                right_groups.push_back(value);
-                start = end + 1;
-            }
-
-            right_count = right_groups.size();
-            // 从后向前填充
-            for (int i = 0; i < right_count; ++i) {
-                int pos = 8 - right_count + i;
-                result[pos * 2] = (right_groups[i] >> 8) & 0xFF;
-                result[pos * 2 + 1] = right_groups[i] & 0xFF;
-            }
-        }
-
-        if (left_count + right_count >= 8) return {};
-    } else {
-        // 完整格式，无压缩
-        int group_count = 0;
-        size_t start = 0;
-        while (start < sv.length()) {
-            size_t end = sv.find(':', start);
-            if (end == std::string_view::npos) end = sv.length();
-
-            std::string_view group = sv.substr(start, end - start);
-            if (group.empty()) return {};
-
-            uint16_t value = 0;
-            for (char c : group) {
-                if (c >= '0' && c <= '9') {
-                    value = value * 16 + (c - '0');
-                } else if (c >= 'a' && c <= 'f') {
-                    value = value * 16 + (c - 'a' + 10);
-                } else if (c >= 'A' && c <= 'F') {
-                    value = value * 16 + (c - 'A' + 10);
-                } else {
+                if (!value) {
                     return {};
                 }
-                if (value > 0xFFFF) return {};
+
+                if (left_count >= 8) {
+                    return {};
+                }
+
+                result[left_count * 2] = static_cast<uint8_t>((*value >> 8) & 0xFF);
+
+                result[left_count * 2 + 1] = static_cast<uint8_t>(*value & 0xFF);
+
+                ++left_count;
+                start = end + 1;
             }
-
-            if (group_count >= 8) return {};
-            result[group_count * 2] = (value >> 8) & 0xFF;
-            result[group_count * 2 + 1] = value & 0xFF;
-            group_count++;
-
-            start = end + 1;
         }
 
-        if (group_count != 8) return {};
+        // 解析右侧
+        vector<uint16_t> right_groups;
+
+        if (!right.empty()) {
+            size_t start = 0;
+
+            while (start < right.length()) {
+                size_t end = right.find(':', start);
+
+                if (end == std::string_view::npos) {
+                    end = right.length();
+                }
+
+                std::string_view group = right.substr(start, end - start);
+
+                auto value = parseIPv6Group(group);
+
+                if (!value) {
+                    return {};
+                }
+
+                right_groups.push_back(*value);
+
+                start = end + 1;
+            }
+
+            right_count = static_cast<int>(right_groups.size());
+        }
+
+        // "::" 必须至少压缩一个 group
+        if (left_count + right_count >= 8) {
+            return {};
+        }
+
+        // 从后向前填充右侧
+        for (int i = 0; i < right_count; ++i) {
+            int pos = 8 - right_count + i;
+
+            result[pos * 2] = static_cast<uint8_t>((right_groups[i] >> 8) & 0xFF);
+
+            result[pos * 2 + 1] = static_cast<uint8_t>(right_groups[i] & 0xFF);
+        }
+
+        return result;
+    }
+
+    // 完整格式，没有 "::"
+    // 必须正好存在 8 个 group
+    int group_count = 0;
+    size_t start = 0;
+
+    while (start < sv.length()) {
+        size_t end = sv.find(':', start);
+
+        if (end == std::string_view::npos) {
+            end = sv.length();
+        }
+
+        std::string_view group = sv.substr(start, end - start);
+
+        auto value = parseIPv6Group(group);
+
+        if (!value) {
+            return {};
+        }
+
+        if (group_count >= 8) {
+            return {};
+        }
+
+        result[group_count * 2] = static_cast<uint8_t>((*value >> 8) & 0xFF);
+
+        result[group_count * 2 + 1] = static_cast<uint8_t>(*value & 0xFF);
+
+        ++group_count;
+        start = end + 1;
+    }
+
+    if (group_count != 8) {
+        return {};
     }
 
     return result;
 }
+
+inline vector<uint8_t> Ip::ToBytes(const string& ip_str) {
+    if (ip_str.empty()) {
+        return {};
+    }
+
+    if (ip_str.find(':') == string::npos) {
+        return toBytesV4(ip_str);
+    }
+
+    return toBytesV6(ip_str);
+}
+
 
 inline vector<uint8_t> Ip::ToBytes(uint32_t ip_int) {
     vector<uint8_t> res(4);
