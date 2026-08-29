@@ -79,6 +79,22 @@ BOOST_AUTO_TEST_CASE(test_decode_with_output_param) {
     BOOST_CHECK(Base64::Decode("TWF==", invalid_result) == false);
 }
 
+BOOST_AUTO_TEST_CASE(test_strict_validation_and_failure_output) {
+    const std::vector<std::string_view> invalid = {
+        "====", "A===", "AA=A", "=AAA", "AAA!", "Zh==", "Zm9="};
+    for (const auto input : invalid) {
+        std::string output = "partial output must not escape";
+        BOOST_CHECK(!Base64::IsBase64Encoded(input));
+        BOOST_CHECK(!Base64::Decode(input, output));
+        BOOST_CHECK(output.empty());
+    }
+
+    std::vector<std::uint8_t> bytes;
+    BOOST_CHECK(Base64::DecodeFromArray("AAEC/w==", 8, bytes));
+    const std::vector<std::uint8_t> expected = {0, 1, 2, 255};
+    BOOST_CHECK(bytes == expected);
+}
+
 BOOST_AUTO_TEST_CASE(test_decode_with_vector) {
     std::vector<char> decoded_vector_result;
     BOOST_CHECK(Base64::Decode("TWFu", decoded_vector_result) == true);

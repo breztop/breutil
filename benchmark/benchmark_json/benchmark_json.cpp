@@ -1,9 +1,9 @@
 #include <benchmark/benchmark.h>
 
 #include <boost/json.hpp>
-#include <chrono>
-#include <random>
+#include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "breutil/json.hpp"
@@ -11,6 +11,12 @@
 #ifdef ENABLE_JSONCPP
 #include <json/json.h>
 #endif
+
+#ifdef ENABLE_SIMDJSON
+#include <simdjson.h>
+#endif
+
+namespace {
 
 // 测试数据生成器
 class TestDataGenerator {
@@ -102,6 +108,19 @@ public:
         return result;
     }
 };
+
+template <typename Json, typename Parse>
+void benchmarkParse(benchmark::State& state, const Json& json, Parse&& parse) {
+    for (auto _ : state) {
+        try {
+            parse(json);
+        } catch (const std::exception&) {
+            state.SkipWithError("Parse failed");
+            break;
+        }
+    }
+    state.SetBytesProcessed(state.iterations() * static_cast<int64_t>(json.size()));
+}
 
 // =============== JSON 解析性能测试 ===============
 
@@ -620,5 +639,80 @@ static void BM_JsonCpp_Memory_SmallObjects(benchmark::State& state) {
 }
 BENCHMARK(BM_JsonCpp_Memory_SmallObjects)->Range(100, 10000)->Complexity();
 #endif
+
+#ifdef ENABLE_SIMDJSON
+static void BM_SimdJson_Parse_Simple(benchmark::State& state) {
+    const simdjson::padded_string json = TestDataGenerator::generateSimpleJson();
+    simdjson::dom::parser parser;
+    benchmarkParse(state, json, [&parser](const auto& input) {
+        auto root = parser.parse(input);
+        benchmark::DoNotOptimize(root);
+    });
+}
+BENCHMARK(BM_SimdJson_Parse_Simple);
+
+static void BM_SimdJson_Parse_Complex(benchmark::State& state) {
+    const simdjson::padded_string json = TestDataGenerator::generateComplexJson();
+    simdjson::dom::parser parser;
+    benchmarkParse(state, json, [&parser](const auto& input) {
+        auto root = parser.parse(input);
+        benchmark::DoNotOptimize(root);
+    });
+}
+BENCHMARK(BM_SimdJson_Parse_Complex);
+
+static void BM_SimdJson_Parse_LargeArray(benchmark::State& state) {
+    const simdjson::padded_string json =
+        TestDataGenerator::generateLargeArrayJson(state.range(0));
+    simdjson::dom::parser parser;
+    benchmarkParse(state, json, [&parser](const auto& input) {
+        auto root = parser.parse(input);
+        benchmark::DoNotOptimize(root);
+    });
+    state.SetComplexityN(state.range(0));
+}
+BENCHMARK(BM_SimdJson_Parse_LargeArray)->Range(100, 10000)->Complexity();
+
+static void BM_SimdJson_ObjectAccess(benchmark::State& state) {
+    const simdjson::padded_string json = TestDataGenerator::generateComplexJson();
+    simdjson::dom::parser parser;
+    const simdjson::dom::element root = parser.parse(json);
+
+    for (auto _ : state) {
+        const std::string_view firstElement =
+            root.at(1)["object with 1 member"].at(0).get_string();
+        const auto complexObject = root.at(8);
+        const int64_t integer = complexObject["integer"].get_int64();
+        const double realNumber = complexObject["real"].get_double();
+        const std::string_view address = complexObject["address"].get_string();
+        const std::string_view url = complexObject["url"].get_string();
+
+        benchmark::DoNotOptimize(firstElement);
+        benchmark::DoNotOptimize(integer);
+        benchmark::DoNotOptimize(realNumber);
+        benchmark::DoNotOptimize(address);
+        benchmark::DoNotOptimize(url);
+    }
+}
+BENCHMARK(BM_SimdJson_ObjectAccess);
+
+static void BM_SimdJson_ArrayAccess(benchmark::State& state) {
+    const simdjson::padded_string json =
+        TestDataGenerator::generateLargeArrayJson(1000);
+    simdjson::dom::parser parser;
+    const simdjson::dom::array array = parser.parse(json).get_array();
+
+    for (auto _ : state) {
+        int64_t sum = 0;
+        for (const simdjson::dom::element value : array) {
+            sum += value.get_int64();
+        }
+        benchmark::DoNotOptimize(sum);
+    }
+}
+BENCHMARK(BM_SimdJson_ArrayAccess);
+#endif  // ENABLE_SIMDJSON
+
+}  // namespace
 
 BENCHMARK_MAIN();
