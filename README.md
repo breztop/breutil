@@ -1,142 +1,175 @@
-
 # breutil
 
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B20)
-[![CMake](https://img.shields.io/badge/CMake-3.20+-green.svg)](https://cmake.org/)
+[![CMake](https://img.shields.io/badge/CMake-3.20%2B-green.svg)](https://cmake.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-breutil 是一个现代 C++ 工具库集合，旨在为 C++ 开发者提供基础组件框架，用于便捷开发。
-当项目逐渐变大时，可以使用市场上更成熟的库，如 Boost等
+**English** | [简体中文](docs/README_CN.md)
 
-## 特性
+`breutil` is a collection of modern C++ utility libraries designed to provide lightweight, reusable building blocks for everyday C++ development.
 
-- **仅头文件设计**：所有类工具无需编译，直接包含即可使用（依赖其他库的封装库除外）
-- **跨平台支持**：除了部分`系统/工具`封装相关模块，仅依赖`std`
-- **现代 C++**：使用 C++23/20 标准特性
-- **模块化组织**：按功能划分模块，便于按需使用
-- **测试驱动**：提供完整的测试套件，确保可靠性
+The project focuses on keeping common utilities simple, modular, and easy to integrate. Most components are header-only and depend only on the C++ standard library.
 
-## 依赖
+For larger or more complex projects, mature libraries such as [Boost](https://www.boost.org/) may be a better choice for some functionality.
 
-当然你完全可以不用下载，除非你使用，建议下载asio，也是一个仅头文件库
-部分模块需要第三方库：
-- **OpenSSL**：用于加密模块 (`crypto`)（可选）
-- **MySQL Connector/C++**：用于数据库模块 (`database`)（可选）
-- **hiredis**：用于 Redis 连接 (`database`)（可选）
-- **Asio**：用于网络模块 (`net`)（可选）
-- **spdlog**：用于日志模块 (`spdlog`)（可选）
-- **Zlib**：用于压缩模块 (`zlib`)（可选）
-- **Boost.Test**：用于测试套件（可选）
+## Features
 
+* **Header-only design**
+  Most utilities require no separate compilation and can be used by simply including the corresponding headers. Modules that wrap third-party libraries are exceptions.
 
-### 集成到您的项目
+* **Cross-platform support**
+  Most modules depend only on the C++ standard library. Platform-specific functionality is isolated in system-related modules.
 
-先安装 breutil：
+* **Modern C++**
+  Designed around C++20, with selected C++23 features used where appropriate.
+
+* **Modular organization**
+  Components are grouped by functionality so you can include only what your project needs.
+
+* **Testing support**
+  The project includes tests for its major modules and utilities.
+
+## Dependencies
+
+Most of `breutil` can be used without installing any third-party libraries.
+
+Optional modules may require external dependencies:
+
+| Dependency          | Used By    | Required |
+| ------------------- | ---------- | -------- |
+| OpenSSL             | `crypto`   | Optional |
+| MySQL Connector/C++ | `database` | Optional |
+| hiredis             | `database` | Optional |
+| Asio                | `net`      | Optional |
+| spdlog              | `spdlog`   | Optional |
+| Zlib                | `zlib`     | Optional |
+| Boost.Test          | Test suite | Optional |
+
+If you plan to use the networking module, installing standalone Asio is recommended. Asio itself can also be used as a header-only library.
+
+## Installation
+
+Install `breutil` with CMake:
 
 ```bash
 cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/your/install/prefix
 cmake --build build
 cmake --install build
-# 卸载
+```
+
+To uninstall:
+
+```bash
 cmake --build build --target uninstall
 ```
 
-在您的 `CMakeLists.txt` 中添加：
+Then add `breutil` to your project's `CMakeLists.txt`:
 
 ```cmake
 set(breutil_DIR "/your/install/prefix/lib/cmake/breutil")
+
 find_package(breutil CONFIG REQUIRED)
 
 target_link_libraries(your_target PRIVATE breutil::breutil)
 ```
 
-## 模块说明
+## Modules
 
-| 模块名称 | 类型 | 描述 |
-| -------- | ---- | ---- |
-| `algorithm` | 算法 | 常用算法实现，如移动平均、中缀表达式求值、前缀树 |
-| `core` | 核心工具 | 基础工具，如最大最小值计算、范围操作 |
-| `crypto` | 加密 | 基于 OpenSSL 的加密函数 (AES, RSA, ECC, ECDSA) |
-| `data_struct` | 数据结构 | 额外数据结构实现，如二叉树 |
-| `database` | 数据库 | MySQL 和 Redis 连接池封装 |
-| `encoding` | 编码转换 | Base64、十六进制转换等 |
-| `flag` | 命令行参数 | 仿 Golang flag 的参数解析工具 |
-| `hash` | 哈希函数 | CRC32、MD5、SHA1 哈希算法 |
-| `ini` | 配置加载 | INI 配置文件解析和加载 |
-| `json` | JSON 处理 | 轻量级仅头文件 JSON 解析库 |
-| `math` | 数学库 | 数学计算工具 (开发中) |
-| `mouse_key_hook` | 系统钩子 | 鼠标键盘事件钩子 |
-| `net` | 网络 | 基于 Asio 的高级网络功能 |
-| `signal` | 信号处理 | 信号处理工具 (开发中) |
-| `string` | 字符串增强 | std::string 扩展功能 (开发中) |
-| `sys_*` | 系统工具 | 平台特定工具 (Linux/macOS/Windows) |
-| `uuid` | UUID 生成 | 跨平台 UUID 生成 |
+| Module           | Category               | Description                                                                        |
+| ---------------- | ---------------------- | ---------------------------------------------------------------------------------- |
+| `algorithm`      | Algorithms             | Common algorithms such as moving averages, infix expression evaluation, and tries  |
+| `core`           | Core utilities         | Basic reusable utilities, range operations, min/max helpers, and common components |
+| `crypto`         | Cryptography           | OpenSSL-based cryptographic utilities including AES, RSA, ECC, and ECDSA           |
+| `data_struct`    | Data structures        | Additional data structures such as binary trees                                    |
+| `database`       | Database               | MySQL and Redis connection pool wrappers                                           |
+| `encoding`       | Encoding               | Base64, hexadecimal conversion, and related encoding utilities                     |
+| `flag`           | Command-line arguments | Go-style command-line flag parsing                                                 |
+| `hash`           | Hashing                | CRC32, MD5, SHA-1, and related hash functions                                      |
+| `ini`            | Configuration          | INI configuration file parsing and loading                                         |
+| `json`           | JSON                   | Lightweight header-only JSON parser                                                |
+| `math`           | Mathematics            | Mathematical utilities *(under development)*                                       |
+| `mouse_key_hook` | System hooks           | Mouse and keyboard event hooks                                                     |
+| `net`            | Networking             | Higher-level networking utilities built on Asio                                    |
+| `signal`         | Signal handling        | Signal-related utilities *(under development)*                                     |
+| `string`         | String utilities       | Extensions and helpers for `std::string` *(under development)*                     |
+| `sys_*`          | System utilities       | Platform-specific utilities for Linux, macOS, and Windows                          |
+| `uuid`           | UUID                   | Cross-platform UUID generation                                                     |
 
-## 核心工具类
+## Core Utilities
 
-| 工具类 | 类别 | 描述 |
-| ------ | ---- | ---- |
-| `Buffer` | 数据处理 | 减少数据复制的缓冲区队列 |
-| `BlockQueue` | 并发 | 多线程安全队列 |
-| `EasyTest` | 测试 | 简单易用的测试框架 |
-| `NifixExpression` | 算法 | 中缀表达式求值 (+-*/) |
-| `Log` | 日志 | 日志记录工具 |
-| `BlockQueue` | 并发 | 阻塞队列 |
-| `Date` | 时间 | 日期处理工具 |
-| `Defer` | 工具 | Go 风格的 defer 机制 |
-| `Enum` | 工具 | 枚举增强工具 |
-| `EventBus` | 事件 | 事件总线实现 |
-| `FileDir` | 文件系统 | 文件和目录操作 |
-| `FSM` | 状态机 | 有限状态机 |
-| `HexLook` | 调试 | 十六进制查看器 |
-| `LibExport` | 工具 | 库导出宏 |
-| `ObjectPool` | 内存 | 对象池管理 |
-| `OstreamOperator` | I/O | 输出流操作符重载 |
-| `Platform` | 系统 | 平台检测工具 |
-| `Property` | 配置 | 属性管理 |
-| `RingBuffer` | 数据结构 | 环形缓冲区 |
-| `Signal` | 信号 | 信号处理 |
-| `Singleton` | 设计模式 | 单例模式实现 |
-| `Spdlog` | 日志 | spdlog 封装 |
-| `StringFunc` | 字符串 | 字符串处理函数 |
-| `System` | 系统 | 系统信息获取 |
-| `ThreadPool` | 并发 | 线程池 |
-| `Time` | 时间 | 时间处理工具 |
-| `Timer` | 时间 | 定时器 |
-| `TypeError` | 错误处理 | 类型错误处理 |
-| `UsbListener` | 硬件 | USB 设备监听 |
-| `Zlib` | 压缩 | Zlib 压缩工具 |
+| Utility           | Category        | Description                                                                    |
+| ----------------- | --------------- | ------------------------------------------------------------------------------ |
+| `Buffer`          | Data processing | Buffer queue designed to reduce unnecessary data copies                        |
+| `BlockQueue`      | Concurrency     | Thread-safe blocking queue                                                     |
+| `EasyTest`        | Testing         | Lightweight testing framework                                                  |
+| `NifixExpression` | Algorithm       | Infix expression evaluator supporting operators such as `+`, `-`, `*`, and `/` |
+| `Log`             | Logging         | Logging utility                                                                |
+| `Date`            | Time            | Date handling utilities                                                        |
+| `Defer`           | Utility         | Go-style `defer` mechanism                                                     |
+| `Enum`            | Utility         | Enum helper utilities                                                          |
+| `EventBus`        | Events          | Event bus implementation                                                       |
+| `FileDir`         | Filesystem      | File and directory operations                                                  |
+| `FSM`             | State machine   | Finite-state machine implementation                                            |
+| `HexLook`         | Debugging       | Hexadecimal data viewer                                                        |
+| `LibExport`       | Utility         | Shared-library export macros                                                   |
+| `ObjectPool`      | Memory          | Object pool implementation                                                     |
+| `OstreamOperator` | I/O             | Helpers for output stream operators                                            |
+| `Platform`        | System          | Platform detection utilities                                                   |
+| `Property`        | Configuration   | Property management utility                                                    |
+| `RingBuffer`      | Data structures | Ring buffer implementation                                                     |
+| `Signal`          | Signals         | Signal-related utility                                                         |
+| `Singleton`       | Design patterns | Singleton implementation                                                       |
+| `Spdlog`          | Logging         | Wrapper around spdlog                                                          |
+| `StringFunc`      | Strings         | String manipulation functions                                                  |
+| `System`          | System          | System information utilities                                                   |
+| `ThreadPool`      | Concurrency     | Thread pool implementation                                                     |
+| `Time`            | Time            | Time-related utilities                                                         |
+| `Timer`           | Time            | Timer utility                                                                  |
+| `TypeError`       | Error handling  | Type-related error handling                                                    |
+| `UsbListener`     | Hardware        | USB device monitoring                                                          |
+| `Zlib`            | Compression     | Zlib compression utilities                                                     |
 
-## 使用示例
+## Usage Examples
 
-### JSON 解析
+### JSON Parsing
 
 ```cpp
 #include "breutil/json/json_value.hpp"
 #include "breutil/json/json_parse.hpp"
 
+#include <iostream>
+#include <string>
+
 using namespace bre::json;
 
-// 解析 JSON 字符串
-std::string json_str = R"(
-{
-    "name": "breutil",
-    "version": "1.0",
-    "features": ["header-only", "cross-platform", "modern-cpp"]
-}
-)";
+int main() {
+    std::string json_str = R"(
+    {
+        "name": "breutil",
+        "version": 1,
+        "features": [
+            "header-only",
+            "cross-platform",
+            "modern-cpp"
+        ]
+    }
+    )";
 
-try {
-    Value root = parse(json_str);
-    std::string name = root["name"].asString();
-    int version = root["version"].asInt();
-    // 使用数据...
-} catch (const ParseError& e) {
-    std::cerr << "Parse error: " << e.what() << std::endl;
+    try {
+        Value root = parse(json_str);
+
+        std::string name = root["name"].asString();
+        int version = root["version"].asInt();
+
+        std::cout << "name: " << name << '\n';
+        std::cout << "version: " << version << '\n';
+    } catch (const ParseError& e) {
+        std::cerr << "Parse error: " << e.what() << '\n';
+    }
 }
 ```
 
-### 简单测试
+### Simple Testing
 
 ```cpp
 #include "breutil/easy_test.hpp"
@@ -153,61 +186,168 @@ int main() {
 }
 ```
 
-### 命令行参数解析
+### Command-Line Argument Parsing
 
 ```cpp
 #include "breutil/flag/flag.hpp"
 
+#include <iostream>
+#include <string>
+
 int main(int argc, char* argv[]) {
     bre::Flag flag;
-    std::string name = flag.String("name", "world", "Name to greet");
-    int count = flag.Int("count", 1, "Number of greetings");
+
+    std::string name =
+        flag.String("name", "world", "Name to greet");
+
+    int count =
+        flag.Int("count", 1, "Number of greetings");
 
     flag.Parse(argc, argv);
 
     for (int i = 0; i < count; ++i) {
-        std::cout << "Hello, " << name << "!" << std::endl;
+        std::cout << "Hello, " << name << "!\n";
     }
 
     return 0;
 }
 ```
 
-## 测试
+## Testing
 
-项目包含完整的测试套件。测试文件命名规则：
+The project includes tests for its modules and utilities.
 
-- `test_xxx.hpp` 或 `test_xxx.cpp`：对应 `xxx` 模块的测试
-- 测试文件位于 `test/` 目录、同级目录或对应模块目录下
+Test files generally follow these naming conventions:
 
-运行测试：
+```text
+test_xxx.hpp
+test_xxx.cpp
+```
+
+where `xxx` corresponds to the component or module being tested.
+
+Tests may be located in:
+
+```text
+test/
+```
+
+or alongside the corresponding source/header file or module directory.
+
+Run the test suite with:
 
 ```bash
+cmake -S . -B build
+cmake --build build
+
 cd build
 ctest --output-on-failure
 ```
 
-## 贡献
+Some components with more extensive functionality may have additional functional tests organized separately.
 
-欢迎贡献任何代码！请遵循以下步骤：
+## Project Structure
 
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建 Pull Request
+A typical `breutil` source tree looks like:
 
-## 许可证
+```text
+breutil/
+├── algorithm/
+├── core/
+├── crypto/
+├── data_struct/
+├── database/
+├── encoding/
+├── flag/
+├── hash/
+├── ini/
+├── json/
+├── math/
+├── net/
+├── signal/
+├── string/
+├── sys_linux/
+├── sys_macos/
+├── sys_windows/
+└── uuid/
+```
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+Individual modules can generally be used independently.
 
-## 联系
+For most header-only utilities, simply include the required header:
 
-项目维护者：breztop
+```cpp
+#include "breutil/..."
+```
 
-项目链接：[https://github.com/breztop/breutil](https://github.com/breztop/breutil)
+Third-party dependencies are only required when using modules that explicitly depend on them.
+
+## Design Philosophy
+
+`breutil` is intended to provide small and practical utilities for C++ projects without requiring a large framework.
+
+The main goals are:
+
+* Keep common utilities lightweight.
+* Prefer header-only implementations when practical.
+* Minimize unnecessary third-party dependencies.
+* Keep platform-specific code isolated.
+* Provide reusable building blocks instead of large abstractions.
+* Make individual modules easy to integrate into existing projects.
+* Use modern C++ features while keeping the APIs straightforward.
+
+`breutil` is not intended to replace mature general-purpose libraries such as Boost. As a project grows, using established libraries for complex functionality is often the better engineering choice.
+
+## Contributing
+
+Contributions are welcome.
+
+To contribute:
+
+1. Fork the repository.
+
+2. Create a feature branch:
+
+```bash
+git checkout -b feature/AmazingFeature
+```
+
+3. Commit your changes:
+
+```bash
+git commit -m "Add some AmazingFeature"
+```
+
+4. Push the branch:
+
+```bash
+git push origin feature/AmazingFeature
+```
+
+5. Open a Pull Request.
+
+When adding new utilities, tests should normally be added alongside the implementation or in the corresponding test directory.
+
+## License
+
+This project is licensed under the MIT License.
+
+See [LICENSE](LICENSE) for details.
+
+## Maintainer
+
+Maintainer: **breztop**
+
+Project repository:
+
+https://github.com/breztop/breutil
 
 ---
 
-**注意**：test_xxx 开头的文件是 xxx 文件的测试。为了方便使用，breutil 中的工具尽可能写为仅头文件，部分会依赖第三方库。一个类的测试文件一般在 test 目录下、同级目录下，或该文件对应的文件夹下。对于功能较多的文件，功能测试放到了 signal 中。
-
+> **Note**
+>
+> Files beginning with `test_` are generally tests for the corresponding component.
+>
+> To keep integration simple, utilities in `breutil` are implemented as header-only components whenever practical. Some modules require optional third-party libraries.
+>
+> Tests are usually located in the `test/` directory, alongside the corresponding source file, or inside the related module directory.
