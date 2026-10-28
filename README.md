@@ -99,6 +99,7 @@ target_link_libraries(your_target PRIVATE breutil::breutil)
 
 | Utility           | Category        | Description                                                                    |
 | ----------------- | --------------- | ------------------------------------------------------------------------------ |
+| `binary_io.hpp` | Binary IO | `bre::binary::AppendInteger` / `ReadInteger`: fixed-width big-endian integers; incomplete reads preserve the cursor and output |
 | `Buffer`          | Data processing | Buffer queue designed to reduce unnecessary data copies                        |
 | `BlockQueue`      | Concurrency     | Thread-safe blocking queue                                                     |
 | `EasyTest`        | Testing         | Lightweight testing framework                                                  |

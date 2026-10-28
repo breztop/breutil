@@ -76,6 +76,7 @@ target_link_libraries(your_target PRIVATE breutil::breutil)
 
 | 工具类 | 类别 | 描述 |
 | ------ | ---- | ---- |
+| `binary_io.hpp` | 二进制读写 | `bre::binary::AppendInteger` / `ReadInteger` 读写固定宽度大端整数；输入不足时保持游标与输出不变 |
 | `Buffer` | 数据处理 | 减少数据复制的缓冲区队列 |
 | `BlockQueue` | 并发 | 多线程安全队列 |
 | `EasyTest` | 测试 | 简单易用的测试框架 |
